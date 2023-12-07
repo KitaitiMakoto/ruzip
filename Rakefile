@@ -1,5 +1,7 @@
-require "bundler/gem_tasks"
 require "rake/testtask"
+require "rubygems/tasks"
+
+Gem::Tasks.new
 
 Rake::TestTask.new(:test) do |t|
   t.test_files = FileList["test/**/*_test.rb"]
