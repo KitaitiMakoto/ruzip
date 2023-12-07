@@ -15,4 +15,6 @@ RbSys::ExtensionTask.new("ruzip", GEMSPEC) do |ext|
   ext.lib_dir = "lib/ruzip"
 end
 
-task default: %i[compile test]
+task test: :compile
+
+task default: :test
