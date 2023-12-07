@@ -2,7 +2,7 @@ require_relative "lib/ruzip/version"
 
 Gem::Specification.new do |spec|
   spec.name = "ruzip"
-  spec.version = Ruzip::VERSION
+  spec.version = RuZip::VERSION
   spec.authors = ["Kitaiti Makoto"]
   spec.email = ["KitaitiMakoto@gmail.com"]
 

@@ -6,7 +6,7 @@ fn hello(subject: String) -> String {
 
 #[magnus::init]
 fn init(ruby: &Ruby) -> Result<(), Error> {
-    let module = ruby.define_module("Ruzip")?;
+    let module = ruby.define_module("RuZip")?;
     module.define_singleton_method("hello", function!(hello, 1))?;
     Ok(())
 }

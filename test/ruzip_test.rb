@@ -1,9 +1,9 @@
 require "test_helper"
 
-class RuzipTest < Test::Unit::TestCase
+class RuZipTest < Test::Unit::TestCase
   test "VERSION" do
     assert do
-      ::Ruzip.const_defined?(:VERSION)
+      ::RuZip.const_defined?(:VERSION)
     end
   end
 
