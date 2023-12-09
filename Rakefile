@@ -3,9 +3,7 @@ require "rubygems/tasks"
 
 Gem::Tasks.new
 
-Rake::TestTask.new(:test) do |t|
-  t.test_files = FileList["test/**/*_test.rb"]
-end
+Rake::TestTask.new
 
 require "rb_sys/extensiontask"
 
