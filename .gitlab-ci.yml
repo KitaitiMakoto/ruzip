@@ -6,9 +6,10 @@ default:
     - gem update --system '3.4.22'
     - gem install bundler -v 2.4.22
     - bundle install
+    - curl https://sh.rustup.rs -sSf | sh -s -- -y
 
-example_job:
+test:
   variables:
     RB_SYS_FORCE_INSTALL_RUST_TOOLCHAIN: 'true'
   script:
-    - bundle exec rake
+    - source "$HOME/.cargo/env" && bundle exec rake test
