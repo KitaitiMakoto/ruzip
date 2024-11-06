@@ -3,7 +3,7 @@ use magnus::{
 };
 use std::cell::RefCell;
 use std::fs;
-use std::io;
+use std::io::{self, Read};
 use std::os::fd::FromRawFd;
 use zip::ZipArchive;
 
@@ -78,6 +78,21 @@ impl Archive {
     fn len(&self) -> usize {
         self.0.borrow().len()
     }
+
+    fn read_by_name(&self, name: RString) -> Result<Value, Error> {
+        let name_string = name.to_string()
+            .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?;
+        let mut archive = self.0.borrow_mut();
+        let mut file = archive.by_name(&name_string)
+            .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?;
+        let mut buf = Vec::new();
+        file.read_to_end(&mut buf)
+            .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?;
+        let ruby = Ruby::get()
+            .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?;
+        let rstring = ruby.str_from_slice(&buf);
+        Ok(rstring.as_value())
+    }
 }
 
 #[magnus::init]
@@ -86,5 +101,6 @@ fn init(ruby: &Ruby) -> Result<(), Error> {
     let archive_class = module.define_class("Archive", ruby.class_object())?;
     archive_class.define_singleton_method("new", function!(Archive::new, 1))?;
     archive_class.define_method("length", method!(Archive::len, 0))?;
+    archive_class.define_method("read_by_name", method!(Archive::read_by_name, 1))?;
     Ok(())
 }
