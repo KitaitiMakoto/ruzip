@@ -93,6 +93,14 @@ impl Archive {
         let rstring = ruby.str_from_slice(&buf);
         Ok(rstring.as_value())
     }
+
+    fn by_name(&self, name: RString) -> Result<Option<File>, Error> {
+        let name_string = name
+            .to_string()
+            .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?;
+        let archive = self.0.borrow_mut();
+        Ok(archive.index_for_name(&name_string).map(File))
+    }
 }
 
 #[magnus::wrap(class = "RuZip::File")]
@@ -107,5 +115,6 @@ fn init(ruby: &Ruby) -> Result<(), Error> {
     archive_class.define_method("read_by_name", method!(Archive::read_by_name, 1))?;
 
     let file_class = module.define_class("File", ruby.class_object())?;
+    archive_class.define_method("by_name", method!(Archive::by_name, 1))?;
     Ok(())
 }
