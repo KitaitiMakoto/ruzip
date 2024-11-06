@@ -45,4 +45,18 @@ class ArchiveTest < Test::Unit::TestCase
     archive = RuZip::Archive::new(fixture_path("book.epub"))
     assert_equal 20, archive.length
   end
+
+  test "read_by_name" do
+    archive = RuZip::Archive::new(fixture_path("book.epub"))
+    assert_equal <<EOS, archive.read_by_name("META-INF/container.xml").force_encoding("UTF-8")
+<?xml version="1.0"?>
+<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+  <rootfiles>
+    <rootfile full-path="OPS/ルートファイル.opf" media-type="application/oebps-package+xml" />
+    <rootfile full-path="nested/dir/content.opf" media-type="application/oebps-package+xml" />
+    <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml" />
+  </rootfiles>
+</container>
+EOS
+  end
 end
