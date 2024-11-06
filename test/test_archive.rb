@@ -1,5 +1,4 @@
 require_relative "helper"
-require "ruzip"
 
 class ArchiveTest < Test::Unit::TestCase
   test "new with path" do
