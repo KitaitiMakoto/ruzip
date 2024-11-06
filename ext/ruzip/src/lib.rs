@@ -95,6 +95,9 @@ impl Archive {
     }
 }
 
+#[magnus::wrap(class = "RuZip::File")]
+struct File(usize);
+
 #[magnus::init]
 fn init(ruby: &Ruby) -> Result<(), Error> {
     let module = ruby.define_module("RuZip")?;
@@ -102,5 +105,7 @@ fn init(ruby: &Ruby) -> Result<(), Error> {
     archive_class.define_singleton_method("new", function!(Archive::new, 1))?;
     archive_class.define_method("length", method!(Archive::len, 0))?;
     archive_class.define_method("read_by_name", method!(Archive::read_by_name, 1))?;
+
+    let file_class = module.define_class("File", ruby.class_object())?;
     Ok(())
 }
