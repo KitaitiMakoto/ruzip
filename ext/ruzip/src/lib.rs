@@ -1,14 +1,14 @@
 use magnus::{
     class, exception, function, method, prelude::*, Error, Integer, RString, Ruby, Symbol, Value,
 };
-use std::cell::RefCell;
 use std::fs;
-use std::io::{self, Read};
+use std::io;
 use std::os::fd::FromRawFd;
+use std::sync::Arc;
 use zip::ZipArchive;
 
 #[magnus::wrap(class = "RuZip::Archive", free_immediately, size)]
-struct Archive(RefCell<ZipArchive<fs::File>>);
+struct Archive(Arc<ZipArchive<fs::File>>);
 
 struct IO(Value);
 
@@ -76,20 +76,20 @@ impl Archive {
     }
 
     fn len(&self) -> usize {
-        self.0.borrow().len()
+        self.0.len()
     }
 
     fn by_name(&self, name: RString) -> Result<Option<File>, Error> {
         let name_string = name
             .to_string()
             .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?;
-        let archive = self.0.borrow_mut();
-        Ok(archive.index_for_name(&name_string).map(File))
+        let archive = self.0.clone();
+        Ok(archive.index_for_name(&name_string).map(|i| File(archive, i)))
     }
 }
 
 #[magnus::wrap(class = "RuZip::File")]
-struct File(usize);
+struct File(Arc<ZipArchive<fs::File>>, usize);
 
 #[magnus::init]
 fn init(ruby: &Ruby) -> Result<(), Error> {
