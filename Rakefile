@@ -11,9 +11,7 @@ task build: :compile
 
 GEMSPEC = Gem::Specification.load("ruzip.gemspec")
 
-RbSys::ExtensionTask.new("ruzip", GEMSPEC) do |ext|
-  ext.lib_dir = "lib/ruzip"
-end
+RbSys::ExtensionTask.new("ruzip", GEMSPEC)
 
 task test: :compile
 
