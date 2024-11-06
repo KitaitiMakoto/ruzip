@@ -1,6 +1,6 @@
 require_relative "helper"
 
-class ArchiveTest < Test::Unit::TestCase
+class TestArchive < Test::Unit::TestCase
   test "new with path" do
     archive = RuZip::Archive.new(fixture_path("book.epub"))
     assert_kind_of RuZip::Archive, archive
