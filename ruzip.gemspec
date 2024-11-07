@@ -1,6 +1,10 @@
+require "json"
+
+rust_metadata = JSON.load(`cargo metadata --no-deps`)
+
 Gem::Specification.new do |spec|
   spec.name = "ruzip"
-  spec.version = "0.1.0"
+  spec.version = rust_metadata["packages"][0]["version"]
   spec.authors = ["Kitaiti Makoto"]
   spec.email = ["KitaitiMakoto@gmail.com"]
 
