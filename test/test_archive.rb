@@ -2,23 +2,23 @@ require_relative "helper"
 
 class TestArchive < Test::Unit::TestCase
   test "new with path" do
-    archive = RuZip::Archive.new(fixture_path("book.epub"))
+    archive = RuZip::Archive.new(fixture_path("accessible_epub_3.epub"))
     assert_kind_of RuZip::Archive, archive
   end
 
   test "new with pathname" do
-    archive = RuZip::Archive.new(Pathname(fixture_path("book.epub")))
+    archive = RuZip::Archive.new(Pathname(fixture_path("accessible_epub_3.epub")))
     assert_kind_of RuZip::Archive, archive
   end
 
   test "new with file" do
-    archive = RuZip::Archive.new(File.open(fixture_path("book.epub")))
+    archive = RuZip::Archive.new(File.open(fixture_path("accessible_epub_3.epub")))
     assert_kind_of RuZip::Archive, archive
   end
 
   test "new with closed file" do
     io = nil
-    File.open fixture_path("book.epub") do |file|
+    File.open fixture_path("accessible_epub_3.epub") do |file|
       io = file
     end
     assert_raise_kind_of IOError do
@@ -42,7 +42,7 @@ class TestArchive < Test::Unit::TestCase
   end
 
   test "len" do
-    archive = RuZip::Archive::new(fixture_path("book.epub"))
-    assert_equal 20, archive.length
+    archive = RuZip::Archive::new(fixture_path("accessible_epub_3.epub"))
+    assert_equal 38, archive.length
   end
 end

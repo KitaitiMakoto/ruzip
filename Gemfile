@@ -2,3 +2,5 @@ source "https://rubygems.org"
 
 # Specify your gem's dependencies in ruzip.gemspec
 gemspec
+
+gem "openssl", "~> 3.3"

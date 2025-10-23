@@ -2,7 +2,7 @@ require_relative "helper"
 
 class TestFile < Test::Unit::TestCase
   setup do
-    @archive = RuZip::Archive.new(fixture_path("book.epub"))
+    @archive = RuZip::Archive.new(fixture_path("accessible_epub_3.epub"))
   end
 
   test "retrieve" do

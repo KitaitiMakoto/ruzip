@@ -33,6 +33,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "test-unit-notify"
   spec.add_development_dependency "terminal-notifier"
   spec.add_development_dependency "rubygems-tasks"
+  spec.add_development_dependency "kar"
 
   # For more information and examples about making a new gem, check out our
   # guide at: https://bundler.io/guides/creating_gem.html
