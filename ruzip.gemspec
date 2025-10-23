@@ -30,6 +30,8 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "rake", "~> 13.0"
   spec.add_development_dependency "rake-compiler"
   spec.add_development_dependency "test-unit", "~> 3.0"
+  spec.add_development_dependency "test-unit-notify"
+  spec.add_development_dependency "terminal-notifier"
   spec.add_development_dependency "rubygems-tasks"
 
   # For more information and examples about making a new gem, check out our
