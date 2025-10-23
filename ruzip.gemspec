@@ -1,6 +1,6 @@
 require "json"
 
-rust_metadata = JSON.load(`cargo metadata --no-deps`)
+rust_metadata = JSON.load(`cargo metadata --manifest-path=ext/Cargo.toml --no-deps --format-version=1`)
 
 Gem::Specification.new do |spec|
   spec.name = "ruzip"
@@ -25,11 +25,10 @@ Gem::Specification.new do |spec|
     `git ls-files -z`.split("\x0")
   end
   spec.require_paths = ["lib"]
-  spec.extensions = ["ext/ruzip/Cargo.toml"]
+  spec.extensions = ["ext/Cargo.toml"]
 
   spec.add_development_dependency "rake", "~> 13.0"
   spec.add_development_dependency "rake-compiler"
-  spec.add_development_dependency "rb_sys", "~> 0.9.63"
   spec.add_development_dependency "test-unit", "~> 3.0"
   spec.add_development_dependency "rubygems-tasks"
 
