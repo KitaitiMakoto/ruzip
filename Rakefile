@@ -13,7 +13,12 @@ DL_NAME = "#{GEMSPEC.name}.#{RbConfig::CONFIG["DLEXT"]}"
 DL_PATH = File.join("lib", DL_NAME)
 file DL_PATH => SRC + [MANIFEST] do
   results = Rake.verbose == true ? $stdout : []
-  Gem::Ext::CargoBuilder.new.build MANIFEST, ".", results, [], "lib", File.expand_path("ext")
+  begin
+    Gem::Ext::CargoBuilder.new.build MANIFEST, ".", results, [], "lib", File.expand_path("ext")
+  rescue => error
+    $stderr.puts results unless Rake.verbose == true
+    fail
+  end
 end
 CLEAN.include DL_NAME
 CLEAN.include DL_PATH
