@@ -27,8 +27,7 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
   spec.extensions = ["ext/Cargo.toml"]
 
-  spec.add_development_dependency "rake",
-  spec.add_development_dependency "rake-compiler"
+  spec.add_development_dependency "rake"
   spec.add_development_dependency "test-unit"
   spec.add_development_dependency "test-unit-notify"
   spec.add_development_dependency "terminal-notifier"
