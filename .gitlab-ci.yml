@@ -1,5 +1,5 @@
 default:
-  image: ruby:3.2.2
+  image: ruby:3.4.7
 
   before_script:
     - apt-get update && apt-get install -y clang
@@ -10,7 +10,5 @@ default:
     - bundle install
 
 test:
-  variables:
-    RB_SYS_FORCE_INSTALL_RUST_TOOLCHAIN: 'true'
   script:
-    - source "$HOME/.cargo/env" && bundle exec rake test
+    - bundle exec rake test
