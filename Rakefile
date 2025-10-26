@@ -7,7 +7,7 @@ require "kar/dsl"
 cargo "ruzip"
 
 Gem::Tasks.new
-task build: "cargo:validate"
+task build: "cargo:check"
 
 Rake::TestTask.new
 
