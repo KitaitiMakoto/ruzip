@@ -1,6 +1,7 @@
 use magnus::{
     Error, Integer, RString, Ruby, Symbol, Value, class, exception, function, method, prelude::*,
 };
+use std::cmp;
 use std::fs;
 use std::io::{self, Read};
 use std::os::fd::FromRawFd;
@@ -169,16 +170,17 @@ impl File {
         }
     }
 
-    fn read(&self) -> Result<String> {
-        let mut buf = String::new();
-        self.0
+    fn read(&self) -> Result<RString> {
+        let mut archive = self.0
             .lock()
-            .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?
-            .by_index(self.1)
-            .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?
-            .read_to_string(&mut buf)
             .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?;
-        Ok(buf)
+        let mut file = archive
+            .by_index(self.1)
+            .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?;
+        let mut buf = Vec::with_capacity(file.size() as usize);
+        file.read_to_end(&mut buf)
+            .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?;
+        Ok(RString::from_slice(&buf))
     }
 }
 
