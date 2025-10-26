@@ -1,9 +1,8 @@
 use magnus::{
-    Error, Integer, RString, Ruby, Symbol, Value, class, exception, function, method, prelude::*,
+    Error, Integer, RString, Ruby, Value, class, exception, function, method, prelude::*,
 };
-use std::cmp;
 use std::fs;
-use std::io::{self, Read};
+use std::io::Read;
 use std::os::fd::FromRawFd;
 use std::sync::{Arc, Mutex};
 use zip::ZipArchive;
@@ -12,43 +11,6 @@ type Result<T> = std::result::Result<T, Error>;
 
 #[magnus::wrap(class = "RuZip::Archive", free_immediately, size)]
 struct Archive(Arc<Mutex<ZipArchive<fs::File>>>);
-
-struct IO(Value);
-
-impl io::Read for IO {
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        let buf_len = buf.len();
-        let r_string: Value = self.0.funcall_public("read", (buf_len,)).unwrap(); // FIXME: unwrap(). Should use second arg?
-        if r_string.is_nil() {
-            Ok(0)
-        } else {
-            let data = r_string.to_string();
-            let len = data.len();
-            buf.clone_from_slice(data.as_bytes()); // FIXME: clone_from_slice panics when sizes of buf and data are not the same
-            Ok(len)
-        }
-    }
-}
-
-impl io::Seek for IO {
-    fn seek(&mut self, pos: io::SeekFrom) -> io::Result<u64> {
-        use io::SeekFrom::*;
-        let value = self.0;
-
-        match pos {
-            Start(i) => value
-                .funcall_public::<&str, (u64, Symbol), u64>("seek", (i, Symbol::new("SET")))
-                .unwrap(), // FIXME: unwrap()
-            End(i) => value
-                .funcall_public("seek", (i, Symbol::new("END")))
-                .unwrap(),
-            Current(i) => value
-                .funcall_public("seek", (i, Symbol::new("CUR")))
-                .unwrap(),
-        };
-        Ok(value.funcall_public("pos", ()).unwrap())
-    }
-}
 
 impl Archive {
     fn new(r_io: Value) -> Result<Self> {
@@ -171,7 +133,8 @@ impl File {
     }
 
     fn read(&self) -> Result<RString> {
-        let mut archive = self.0
+        let mut archive = self
+            .0
             .lock()
             .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?;
         let mut file = archive
