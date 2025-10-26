@@ -2,13 +2,15 @@ use magnus::{
     class, exception, function, method, prelude::*, Error, Integer, RString, Ruby, Symbol, Value,
 };
 use std::fs;
-use std::io;
+use std::io::{self, Read};
 use std::os::fd::FromRawFd;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use zip::ZipArchive;
 
+type Result<T> = std::result::Result<T, Error>;
+
 #[magnus::wrap(class = "RuZip::Archive", free_immediately, size)]
-struct Archive(Arc<ZipArchive<fs::File>>);
+struct Archive(Arc<Mutex<ZipArchive<fs::File>>>);
 
 struct IO(Value);
 
@@ -48,7 +50,7 @@ impl io::Seek for IO {
 }
 
 impl Archive {
-    fn new(r_io: Value) -> Result<Self, Error> {
+    fn new(r_io: Value) -> Result<Self> {
         let io = if r_io.is_kind_of(class::io()) {
             let fileno: Integer = r_io.funcall_public("fileno", ())?;
             let raw_fd = fileno.to_i32()?;
@@ -72,27 +74,77 @@ impl Archive {
         };
         let zip: ZipArchive<fs::File> = ZipArchive::new(io)
             .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?;
-        Ok(Self(zip.into()))
+        Ok(Self(Arc::new(Mutex::new(zip))))
     }
 
-    fn len(&self) -> usize {
-        self.0.len()
+    fn len(&self) -> Result<usize> {
+        Ok(self
+            .0
+            .lock()
+            .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?
+            .len())
     }
 
-    fn by_name(&self, name: RString) -> Result<Option<File>, Error> {
+    fn by_name(&self, name: RString) -> Result<Option<File>> {
         let name_string = name
             .to_string()
             .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?;
-        let archive = self.0.clone();
-        Ok(archive.index_for_name(&name_string).map(|i| File(archive, i)))
+        Ok(self
+            .0
+            .lock()
+            .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?
+            .index_for_name(&name_string)
+            .map(|i| File(self.0.clone(), i)))
     }
 }
 
 #[magnus::wrap(class = "RuZip::File")]
-struct File(Arc<ZipArchive<fs::File>>, usize);
+struct File(Arc<Mutex<ZipArchive<fs::File>>>, usize);
+
+impl File {
+    // FIXME: exception::runtime_error() -> ruby.exception_runtime_error()
+    fn size(&self) -> Result<u64> {
+        let size = self
+            .0
+            .lock()
+            .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?
+            .by_index(self.1)
+            .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?
+            .size();
+        Ok(size)
+    }
+
+    // TODO: Use ExtendedTimestamp if available
+    fn last_modified(&self) -> Result<Option<Value>> {
+        let last_modified = self
+            .0
+            .lock()
+            .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?
+            .by_index(self.1)
+            .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?
+            .last_modified();
+        match last_modified {
+            Some(mtime) => Ok(Some(magnus::class::time().new_instance((mtime.year(), mtime.month(), mtime.day(), mtime.hour(), mtime.minute(), mtime.second()))?)),
+            None => Ok(None),
+        }
+    }
+
+    fn read(&self) -> Result<String> {
+        let mut buf = String::new();
+        self
+            .0
+            .lock()
+            .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?
+            .by_index(self.1)
+            .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?
+            .read_to_string(&mut buf)
+            .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?;
+        Ok(buf)
+    }
+}
 
 #[magnus::init]
-fn init(ruby: &Ruby) -> Result<(), Error> {
+fn init(ruby: &Ruby) -> Result<()> {
     let module = ruby.define_module("RuZip")?;
 
     let archive_class = module.define_class("Archive", ruby.class_object())?;
@@ -101,5 +153,9 @@ fn init(ruby: &Ruby) -> Result<(), Error> {
 
     let file_class = module.define_class("File", ruby.class_object())?;
     archive_class.define_method("by_name", method!(Archive::by_name, 1))?;
+    file_class.define_method("size", method!(File::size, 0))?;
+    file_class.define_method("last_modified", method!(File::last_modified, 0))?;
+    file_class.define_method("read", method!(File::read, 0))?;
+
     Ok(())
 }
