@@ -85,42 +85,41 @@ impl Archive {
 struct File(Arc<Mutex<ZipArchive<fs::File>>>, usize);
 
 impl File {
-    // FIXME: exception::runtime_error() -> ruby.exception_runtime_error()
-    fn name(&self) -> Result<String> {
+    fn name(ruby: &Ruby, rb_self: &Self) -> Result<String> {
         String::from_utf8(
-            self.0
+            rb_self.0
                 .lock()
-                .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?
-                .by_index(self.1)
-                .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?
+                .map_err(|e| Error::new(ruby.exception_runtime_error(), format!("{}", e)))?
+                .by_index(rb_self.1)
+                .map_err(|e| Error::new(ruby.exception_runtime_error(), format!("{}", e)))?
                 .name_raw()
                 .into(),
         )
-        .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))
+        .map_err(|e| Error::new(ruby.exception_runtime_error(), format!("{}", e)))
     }
 
-    fn size(&self) -> Result<u64> {
-        let size = self
+    fn size(ruby: &Ruby, rb_self: &Self) -> Result<u64> {
+        let size = rb_self
             .0
             .lock()
-            .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?
-            .by_index(self.1)
-            .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?
+            .map_err(|e| Error::new(ruby.exception_runtime_error(), format!("{}", e)))?
+            .by_index(rb_self.1)
+            .map_err(|e| Error::new(ruby.exception_runtime_error(), format!("{}", e)))?
             .size();
         Ok(size)
     }
 
     // TODO: Use ExtendedTimestamp if available
-    fn last_modified(&self) -> Result<Option<Value>> {
-        let last_modified = self
+    fn last_modified(ruby: &Ruby, rb_self: &Self) -> Result<Option<Value>> {
+        let last_modified = rb_self
             .0
             .lock()
-            .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?
-            .by_index(self.1)
-            .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?
+            .map_err(|e| Error::new(ruby.exception_runtime_error(), format!("{}", e)))?
+            .by_index(rb_self.1)
+            .map_err(|e| Error::new(ruby.exception_runtime_error(), format!("{}", e)))?
             .last_modified();
         match last_modified {
-            Some(mtime) => Ok(Some(magnus::class::time().new_instance((
+            Some(mtime) => Ok(Some(ruby.class_time().new_instance((
                 mtime.year(),
                 mtime.month(),
                 mtime.day(),
@@ -132,17 +131,17 @@ impl File {
         }
     }
 
-    fn read(&self) -> Result<RString> {
-        let mut archive = self
+    fn read(ruby: &Ruby, rb_self: &Self) -> Result<RString> {
+        let mut archive = rb_self
             .0
             .lock()
-            .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?;
+            .map_err(|e| Error::new(ruby.exception_runtime_error(), format!("{}", e)))?;
         let mut file = archive
-            .by_index(self.1)
-            .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?;
+            .by_index(rb_self.1)
+            .map_err(|e| Error::new(ruby.exception_runtime_error(), format!("{}", e)))?;
         let mut buf = Vec::with_capacity(file.size() as usize);
         file.read_to_end(&mut buf)
-            .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?;
+            .map_err(|e| Error::new(ruby.exception_runtime_error(), format!("{}", e)))?;
         Ok(RString::from_slice(&buf))
     }
 }
