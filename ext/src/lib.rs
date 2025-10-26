@@ -124,14 +124,16 @@ struct File(Arc<Mutex<ZipArchive<fs::File>>>, usize);
 impl File {
     // FIXME: exception::runtime_error() -> ruby.exception_runtime_error()
     fn name(&self) -> Result<String> {
-        Ok(self
-            .0
-            .lock()
-            .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?
-            .by_index(self.1)
-            .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?
-            .name()
-            .into())
+        String::from_utf8(
+            self.0
+                .lock()
+                .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?
+                .by_index(self.1)
+                .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?
+                .name_raw()
+                .into(),
+        )
+        .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))
     }
 
     fn size(&self) -> Result<u64> {
