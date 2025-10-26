@@ -115,6 +115,17 @@ struct File(Arc<Mutex<ZipArchive<fs::File>>>, usize);
 
 impl File {
     // FIXME: exception::runtime_error() -> ruby.exception_runtime_error()
+    fn name(&self) -> Result<String> {
+        Ok(self
+            .0
+            .lock()
+            .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?
+            .by_index(self.1)
+            .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?
+            .name()
+            .into())
+    }
+
     fn size(&self) -> Result<u64> {
         let size = self
             .0
@@ -136,15 +147,21 @@ impl File {
             .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?
             .last_modified();
         match last_modified {
-            Some(mtime) => Ok(Some(magnus::class::time().new_instance((mtime.year(), mtime.month(), mtime.day(), mtime.hour(), mtime.minute(), mtime.second()))?)),
+            Some(mtime) => Ok(Some(magnus::class::time().new_instance((
+                mtime.year(),
+                mtime.month(),
+                mtime.day(),
+                mtime.hour(),
+                mtime.minute(),
+                mtime.second(),
+            ))?)),
             None => Ok(None),
         }
     }
 
     fn read(&self) -> Result<String> {
         let mut buf = String::new();
-        self
-            .0
+        self.0
             .lock()
             .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?
             .by_index(self.1)
@@ -166,6 +183,7 @@ fn init(ruby: &Ruby) -> Result<()> {
     let file_class = module.define_class("File", ruby.class_object())?;
     archive_class.define_method("by_index", method!(Archive::by_index, 1))?;
     archive_class.define_method("by_name", method!(Archive::by_name, 1))?;
+    file_class.define_method("name", method!(File::name, 0))?;
     file_class.define_method("size", method!(File::size, 0))?;
     file_class.define_method("last_modified", method!(File::last_modified, 0))?;
     file_class.define_method("read", method!(File::read, 0))?;
