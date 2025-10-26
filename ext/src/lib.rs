@@ -101,12 +101,20 @@ impl Archive {
         let name_string = name
             .to_string()
             .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?;
-        Ok(self
+        let mut archive = self
             .0
             .lock()
-            .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?
-            .index_for_name(&name_string)
-            .map(|i| File(self.0.clone(), i)))
+            .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?;
+        // TODO: Cache entries
+        for i in 0..archive.len() {
+            let file = archive
+                .by_index(i)
+                .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?;
+            if file.name_raw() == name_string.clone().into_bytes() {
+                return Ok(Some(File(self.0.clone(), i)));
+            }
+        }
+        Ok(None)
     }
 }
 
