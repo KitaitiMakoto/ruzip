@@ -1,5 +1,5 @@
 use magnus::{
-    class, exception, function, method, prelude::*, Error, Integer, RString, Ruby, Symbol, Value,
+    Error, Integer, RString, Ruby, Symbol, Value, class, exception, function, method, prelude::*,
 };
 use std::fs;
 use std::io::{self, Read};
@@ -85,6 +85,18 @@ impl Archive {
             .len())
     }
 
+    fn by_index(&self, index: usize) -> Result<File> {
+        match self
+            .0
+            .lock()
+            .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?
+            .by_index(index)
+        {
+            Ok(_) => Ok(File(self.0.clone(), index)),
+            Err(e) => Err(Error::new(exception::runtime_error(), format!("{}", e))),
+        }
+    }
+
     fn by_name(&self, name: RString) -> Result<Option<File>> {
         let name_string = name
             .to_string()
@@ -152,6 +164,7 @@ fn init(ruby: &Ruby) -> Result<()> {
     archive_class.define_method("length", method!(Archive::len, 0))?;
 
     let file_class = module.define_class("File", ruby.class_object())?;
+    archive_class.define_method("by_index", method!(Archive::by_index, 1))?;
     archive_class.define_method("by_name", method!(Archive::by_name, 1))?;
     file_class.define_method("size", method!(File::size, 0))?;
     file_class.define_method("last_modified", method!(File::last_modified, 0))?;
