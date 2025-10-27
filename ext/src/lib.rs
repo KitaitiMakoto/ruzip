@@ -1,6 +1,4 @@
-use magnus::{
-    Error, Integer, RString, Ruby, Value, class, function, method, prelude::*,
-};
+use magnus::{Error, Integer, RString, Ruby, Value, class, function, method, prelude::*};
 use std::fs;
 use std::io::Read;
 use std::os::fd::FromRawFd;
@@ -8,6 +6,10 @@ use std::sync::{Arc, Mutex};
 use zip::ZipArchive;
 
 type Result<T> = std::result::Result<T, Error>;
+
+fn map_err(err: impl std::error::Error, ruby: &Ruby) -> Error {
+    Error::new(ruby.exception_runtime_error(), format!("{}", err))
+}
 
 #[magnus::wrap(class = "RuZip::Archive", free_immediately, size)]
 struct Archive(Arc<Mutex<ZipArchive<fs::File>>>);
@@ -23,40 +25,35 @@ impl Archive {
                 r_io.funcall_public::<&str, (), RString>("to_path", ())?
                     .to_string()?,
             )
-            .unwrap()
+            .map_err(|e| map_err(e, ruby))?
         } else if r_io.respond_to("read", false)? {
             // IO(r_io);
             todo!("#read");
         } else if r_io.is_kind_of(class::string()) {
-            fs::File::open(r_io.to_r_string()?.to_string()?).unwrap() // FIXME: unwrap()
+            fs::File::open(r_io.to_r_string()?.to_string()?).map_err(|e| map_err(e, ruby))?
         } else {
             return Err(Error::new(
                 ruby.exception_type_error(),
                 format!("Unsupported argument type: {}", r_io.inspect()),
             ));
         };
-        let zip: ZipArchive<fs::File> = ZipArchive::new(io)
-            .map_err(|e| Error::new(ruby.exception_runtime_error(), format!("{}", e)))?;
+        let zip: ZipArchive<fs::File> = ZipArchive::new(io).map_err(|e| map_err(e, ruby))?;
         Ok(Self(Arc::new(Mutex::new(zip))))
     }
 
     fn len(ruby: &Ruby, rb_self: &Self) -> Result<usize> {
-        Ok(rb_self
-            .0
-            .lock()
-            .map_err(|e| Error::new(ruby.exception_runtime_error(), format!("{}", e)))?
-            .len())
+        Ok(rb_self.0.lock().map_err(|e| map_err(e, ruby))?.len())
     }
 
     fn by_index(ruby: &Ruby, rb_self: &Self, index: usize) -> Result<File> {
         match rb_self
             .0
             .lock()
-            .map_err(|e| Error::new(ruby.exception_runtime_error(), format!("{}", e)))?
+            .map_err(|e| map_err(e, ruby))?
             .by_index(index)
         {
             Ok(_) => Ok(File(rb_self.0.clone(), index)),
-            Err(e) => Err(Error::new(ruby.exception_runtime_error(), format!("{}", e))),
+            Err(e) => Err(map_err(e, ruby)),
         }
     }
 
@@ -64,15 +61,10 @@ impl Archive {
         let name_string = name
             .to_string()
             .map_err(|e| Error::new(ruby.exception_runtime_error(), format!("{}", e)))?;
-        let mut archive = rb_self
-            .0
-            .lock()
-            .map_err(|e| Error::new(ruby.exception_runtime_error(), format!("{}", e)))?;
+        let mut archive = rb_self.0.lock().map_err(|e| map_err(e, ruby))?;
         // TODO: Cache entries
         for i in 0..archive.len() {
-            let file = archive
-                .by_index(i)
-                .map_err(|e| Error::new(ruby.exception_runtime_error(), format!("{}", e)))?;
+            let file = archive.by_index(i).map_err(|e| map_err(e, ruby))?;
             if file.name_raw() == name_string.clone().into_bytes() {
                 return Ok(Some(File(rb_self.0.clone(), i)));
             }
@@ -87,24 +79,25 @@ struct File(Arc<Mutex<ZipArchive<fs::File>>>, usize);
 impl File {
     fn name(ruby: &Ruby, rb_self: &Self) -> Result<String> {
         String::from_utf8(
-            rb_self.0
+            rb_self
+                .0
                 .lock()
-                .map_err(|e| Error::new(ruby.exception_runtime_error(), format!("{}", e)))?
+                .map_err(|e| map_err(e, ruby))?
                 .by_index(rb_self.1)
-                .map_err(|e| Error::new(ruby.exception_runtime_error(), format!("{}", e)))?
+                .map_err(|e| map_err(e, ruby))?
                 .name_raw()
                 .into(),
         )
-        .map_err(|e| Error::new(ruby.exception_runtime_error(), format!("{}", e)))
+        .map_err(|e| map_err(e, ruby))
     }
 
     fn size(ruby: &Ruby, rb_self: &Self) -> Result<u64> {
         let size = rb_self
             .0
             .lock()
-            .map_err(|e| Error::new(ruby.exception_runtime_error(), format!("{}", e)))?
+            .map_err(|e| map_err(e, ruby))?
             .by_index(rb_self.1)
-            .map_err(|e| Error::new(ruby.exception_runtime_error(), format!("{}", e)))?
+            .map_err(|e| map_err(e, ruby))?
             .size();
         Ok(size)
     }
@@ -114,9 +107,9 @@ impl File {
         let last_modified = rb_self
             .0
             .lock()
-            .map_err(|e| Error::new(ruby.exception_runtime_error(), format!("{}", e)))?
+            .map_err(|e| map_err(e, ruby))?
             .by_index(rb_self.1)
-            .map_err(|e| Error::new(ruby.exception_runtime_error(), format!("{}", e)))?
+            .map_err(|e| map_err(e, ruby))?
             .last_modified();
         match last_modified {
             Some(mtime) => Ok(Some(ruby.class_time().new_instance((
@@ -132,16 +125,10 @@ impl File {
     }
 
     fn read(ruby: &Ruby, rb_self: &Self) -> Result<RString> {
-        let mut archive = rb_self
-            .0
-            .lock()
-            .map_err(|e| Error::new(ruby.exception_runtime_error(), format!("{}", e)))?;
-        let mut file = archive
-            .by_index(rb_self.1)
-            .map_err(|e| Error::new(ruby.exception_runtime_error(), format!("{}", e)))?;
+        let mut archive = rb_self.0.lock().map_err(|e| map_err(e, ruby))?;
+        let mut file = archive.by_index(rb_self.1).map_err(|e| map_err(e, ruby))?;
         let mut buf = Vec::with_capacity(file.size() as usize);
-        file.read_to_end(&mut buf)
-            .map_err(|e| Error::new(ruby.exception_runtime_error(), format!("{}", e)))?;
+        file.read_to_end(&mut buf).map_err(|e| map_err(e, ruby))?;
         Ok(RString::from_slice(&buf))
     }
 }
