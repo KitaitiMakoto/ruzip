@@ -11,7 +11,7 @@ Gem::Specification.new do |spec|
   spec.summary = "Library to support the reading and writing of zip files."
   spec.description = "Library to support the reading and writing of zip files. A wrapper of Rust's zip crate."
   spec.homepage = "https://gitlab.com/KitaitiMakoto/ruzip"
-  spec.license = "AGPL-3.0"
+  spec.license = "AGPL-3.0-or-later"
   spec.required_ruby_version = ">= 3.1.0"
   spec.required_rubygems_version = ">= 3.3.11"
 
