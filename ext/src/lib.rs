@@ -1,5 +1,5 @@
 use magnus::{
-    Error, Integer, RString, Ruby, Value, class, exception, function, method, prelude::*,
+    Error, Integer, RString, Ruby, Value, class, function, method, prelude::*,
 };
 use std::fs;
 use std::io::Read;
@@ -13,7 +13,7 @@ type Result<T> = std::result::Result<T, Error>;
 struct Archive(Arc<Mutex<ZipArchive<fs::File>>>);
 
 impl Archive {
-    fn new(r_io: Value) -> Result<Self> {
+    fn new(ruby: &Ruby, r_io: Value) -> Result<Self> {
         let io = if r_io.is_kind_of(class::io()) {
             let fileno: Integer = r_io.funcall_public("fileno", ())?;
             let raw_fd = fileno.to_i32()?;
@@ -31,50 +31,50 @@ impl Archive {
             fs::File::open(r_io.to_r_string()?.to_string()?).unwrap() // FIXME: unwrap()
         } else {
             return Err(Error::new(
-                exception::type_error(),
+                ruby.exception_type_error(),
                 format!("Unsupported argument type: {}", r_io.inspect()),
             ));
         };
         let zip: ZipArchive<fs::File> = ZipArchive::new(io)
-            .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?;
+            .map_err(|e| Error::new(ruby.exception_runtime_error(), format!("{}", e)))?;
         Ok(Self(Arc::new(Mutex::new(zip))))
     }
 
-    fn len(&self) -> Result<usize> {
-        Ok(self
+    fn len(ruby: &Ruby, rb_self: &Self) -> Result<usize> {
+        Ok(rb_self
             .0
             .lock()
-            .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?
+            .map_err(|e| Error::new(ruby.exception_runtime_error(), format!("{}", e)))?
             .len())
     }
 
-    fn by_index(&self, index: usize) -> Result<File> {
-        match self
+    fn by_index(ruby: &Ruby, rb_self: &Self, index: usize) -> Result<File> {
+        match rb_self
             .0
             .lock()
-            .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?
+            .map_err(|e| Error::new(ruby.exception_runtime_error(), format!("{}", e)))?
             .by_index(index)
         {
-            Ok(_) => Ok(File(self.0.clone(), index)),
-            Err(e) => Err(Error::new(exception::runtime_error(), format!("{}", e))),
+            Ok(_) => Ok(File(rb_self.0.clone(), index)),
+            Err(e) => Err(Error::new(ruby.exception_runtime_error(), format!("{}", e))),
         }
     }
 
-    fn by_name(&self, name: RString) -> Result<Option<File>> {
+    fn by_name(ruby: &Ruby, rb_self: &Self, name: RString) -> Result<Option<File>> {
         let name_string = name
             .to_string()
-            .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?;
-        let mut archive = self
+            .map_err(|e| Error::new(ruby.exception_runtime_error(), format!("{}", e)))?;
+        let mut archive = rb_self
             .0
             .lock()
-            .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?;
+            .map_err(|e| Error::new(ruby.exception_runtime_error(), format!("{}", e)))?;
         // TODO: Cache entries
         for i in 0..archive.len() {
             let file = archive
                 .by_index(i)
-                .map_err(|e| Error::new(exception::runtime_error(), format!("{}", e)))?;
+                .map_err(|e| Error::new(ruby.exception_runtime_error(), format!("{}", e)))?;
             if file.name_raw() == name_string.clone().into_bytes() {
-                return Ok(Some(File(self.0.clone(), i)));
+                return Ok(Some(File(rb_self.0.clone(), i)));
             }
         }
         Ok(None)
