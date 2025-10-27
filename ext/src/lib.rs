@@ -57,15 +57,13 @@ impl Archive {
         }
     }
 
-    fn by_name(ruby: &Ruby, rb_self: &Self, name: RString) -> Result<Option<File>> {
-        let name_string = name
-            .to_string()
-            .map_err(|e| Error::new(ruby.exception_runtime_error(), format!("{}", e)))?;
+    fn by_name(ruby: &Ruby, rb_self: &Self, name: String) -> Result<Option<File>> {
+        let name_bytes = name.as_bytes();
         let mut archive = rb_self.0.lock().map_err(|e| map_err(e, ruby))?;
         // TODO: Cache entries
         for i in 0..archive.len() {
             let file = archive.by_index(i).map_err(|e| map_err(e, ruby))?;
-            if file.name_raw() == name_string.clone().into_bytes() {
+            if file.name_raw() == name_bytes {
                 return Ok(Some(File(rb_self.0.clone(), i)));
             }
         }
