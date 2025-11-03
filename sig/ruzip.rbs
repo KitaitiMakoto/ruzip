@@ -1,4 +1,15 @@
 module RuZip
-  VERSION: String
-  # See the writing guide of rbs: https://github.com/ruby/rbs#guides
+  class Archive
+    def self.new: (IO | path) -> instance
+    def len: -> Integer
+    def by_index: (Integer) -> File
+    def by_name: (String) -> File
+  end
+
+  class File
+    def name: -> String
+    def size: -> Integer
+    def last_modified: -> (Time | nil)
+    def read: -> String
+  end
 end
