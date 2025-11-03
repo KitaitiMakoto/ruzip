@@ -1,0 +1,9 @@
+main_page: README.md
+
+include:
+- CHANGELOG.md
+- sig
+
+exclude:
+- ext/target
+- vendor
