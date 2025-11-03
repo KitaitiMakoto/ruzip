@@ -33,7 +33,8 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "terminal-notifier"
   spec.add_development_dependency "rubygems-tasks"
   spec.add_development_dependency "kar"
-  spec.add_development_dependency "yard"
+  spec.add_development_dependency "rdoc"
+  spec.add_development_dependency "rbs"
 
   # For more information and examples about making a new gem, check out our
   # guide at: https://bundler.io/guides/creating_gem.html
