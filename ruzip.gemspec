@@ -35,6 +35,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "kar"
   spec.add_development_dependency "rdoc"
   spec.add_development_dependency "rbs"
+  spec.add_development_dependency "archive-zip"
 
   # For more information and examples about making a new gem, check out our
   # guide at: https://bundler.io/guides/creating_gem.html
