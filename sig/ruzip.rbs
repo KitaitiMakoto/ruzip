@@ -16,4 +16,11 @@ module RuZip
     # Reads contents and returns it as BINARY string
     def read: -> String
   end
+
+  class Writer
+    def self.new: (String) -> instance
+    def finish: -> Archive
+    def start_file: (String) -> void
+    def write: (String) -> void
+  end
 end
