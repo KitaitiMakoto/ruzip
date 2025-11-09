@@ -8,8 +8,12 @@ module RuZip
 
   class File
     def name: -> String
+
+    # The size of decompressed file
     def size: -> Integer
     def last_modified: -> (Time | nil)
+
+    # Reads contents and returns it as BINARY string
     def read: -> String
   end
 end
