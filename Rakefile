@@ -10,9 +10,7 @@ cargo "ruzip"
 Gem::Tasks.new
 task build: "cargo:check"
 
-directory "test/fixtures"
 TEST_FIXTURE = "test/fixtures/accessible_epub_3.epub"
-file TEST_FIXTURE => "test/fixtures"
 download TEST_FIXTURE => "https://github.com/IDPF/epub3-samples/releases/download/20230704/accessible_epub_3.epub"
 
 Rake::TestTask.new test: [:cargo, TEST_FIXTURE]
