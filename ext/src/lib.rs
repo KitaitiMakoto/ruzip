@@ -1,7 +1,7 @@
 use magnus::{Error, Integer, RString, Ruby, Value, class, function, method, prelude::*};
 use std::cell::RefCell;
 use std::fs;
-use std::io::Read;
+use std::io::{Read, Write};
 use std::os::fd::FromRawFd;
 use std::sync::{Arc, Mutex};
 use zip::{ZipArchive, ZipWriter};
@@ -156,6 +156,38 @@ impl Writer {
             )),
         }
     }
+
+    fn start_file(ruby: &Ruby, rb_self: &Self, name: String) -> Result<()> {
+        match rb_self.0.take() {
+            Some(mut writer) => {
+                writer
+                    .start_file(name, zip::write::SimpleFileOptions::default())
+                    .map_err(|e| map_err(e, ruby))?;
+                rb_self.0.replace(Some(writer));
+                Ok(())
+            }
+            None => Err(Error::new(
+                ruby.exception_runtime_error(),
+                "Already finished",
+            )),
+        }
+    }
+
+    fn write(ruby: &Ruby, rb_self: &Self, buf: String) -> Result<()> {
+        match rb_self.0.take() {
+            Some(mut writer) => {
+                writer
+                    .write_all(buf.as_bytes())
+                    .map_err(|e| map_err(e, ruby))?;
+                rb_self.0.replace(Some(writer));
+                Ok(())
+            }
+            None => Err(Error::new(
+                ruby.exception_runtime_error(),
+                "Already finished",
+            )),
+        }
+    }
 }
 
 #[magnus::init]
@@ -177,6 +209,8 @@ fn init(ruby: &Ruby) -> Result<()> {
     let writer_class = module.define_class("Writer", ruby.class_object())?;
     writer_class.define_singleton_method("new", function!(Writer::new, 1))?;
     writer_class.define_method("finish", method!(Writer::finish, 0))?;
+    writer_class.define_method("start_file", method!(Writer::start_file, 1))?;
+    writer_class.define_method("write", method!(Writer::write, 1))?;
 
     Ok(())
 }
