@@ -1,9 +1,10 @@
 use magnus::{Error, Integer, RString, Ruby, Value, class, function, method, prelude::*};
+use std::cell::RefCell;
 use std::fs;
 use std::io::Read;
 use std::os::fd::FromRawFd;
 use std::sync::{Arc, Mutex};
-use zip::ZipArchive;
+use zip::{ZipArchive, ZipWriter};
 
 type Result<T> = std::result::Result<T, Error>;
 
@@ -131,6 +132,30 @@ impl File {
     }
 }
 
+#[magnus::wrap(class = "RuZip::Writer", free_immediately, size)]
+struct Writer(RefCell<Option<ZipWriter<fs::File>>>);
+
+impl Writer {
+    fn new(ruby: &Ruby, path: String) -> Result<Self> {
+        let file = fs::File::create(path).map_err(|e| map_err(e, ruby))?;
+        let writer = ZipWriter::new(file);
+        Ok(Self(RefCell::new(Some(writer))))
+    }
+
+    fn finish(ruby: &Ruby, rb_self: &Self) -> Result<Archive> {
+        match rb_self.0.take() {
+            Some(writer) => {
+                let archive = writer.finish_into_readable().map_err(|e| map_err(e, ruby))?;
+                Ok(Archive(Arc::new(Mutex::new(archive))))
+            }
+            None => Err(Error::new(
+                ruby.exception_runtime_error(),
+                "Already finished",
+            )),
+        }
+    }
+}
+
 #[magnus::init]
 fn init(ruby: &Ruby) -> Result<()> {
     let module = ruby.define_module("RuZip")?;
@@ -146,6 +171,10 @@ fn init(ruby: &Ruby) -> Result<()> {
     file_class.define_method("size", method!(File::size, 0))?;
     file_class.define_method("last_modified", method!(File::last_modified, 0))?;
     file_class.define_method("read", method!(File::read, 0))?;
+
+    let writer_class = module.define_class("Writer", ruby.class_object())?;
+    writer_class.define_singleton_method("new", function!(Writer::new, 1))?;
+    writer_class.define_method("finish", method!(Writer::finish, 0))?;
 
     Ok(())
 }
