@@ -145,7 +145,9 @@ impl Writer {
     fn finish(ruby: &Ruby, rb_self: &Self) -> Result<Archive> {
         match rb_self.0.take() {
             Some(writer) => {
-                let archive = writer.finish_into_readable().map_err(|e| map_err(e, ruby))?;
+                let archive = writer
+                    .finish_into_readable()
+                    .map_err(|e| map_err(e, ruby))?;
                 Ok(Archive(Arc::new(Mutex::new(archive))))
             }
             None => Err(Error::new(
